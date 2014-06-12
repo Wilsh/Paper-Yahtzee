@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="Andrew Seligman">
+
+    <title>Paper Yahtzee</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="dist/css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script type="text/javascript">
+        function startGame()
+        {
+            var name = document.getElementById('name').value;
+            var isNet = document.getElementById('playtypenet').checked;
+            var div = document.createElement("div");
+            var div2 = document.createElement("div");
+            var app = document.createElement("applet");
+            var param1 = document.createElement("param");
+            var param2 = document.createElement("param");
+            //remove game setup content
+            var setup = document.getElementById('setupDiv');
+            setup.parentNode.removeChild(setup);
+            //outer div attributes
+            div.setAttribute('class',"container theme-showcase");
+            div.setAttribute('role',"main");
+            //inner div attributes
+            div2.setAttribute('class',"text-center");
+            //applet attributes
+            app.setAttribute('archive',"Yahtzee.jar");
+            app.setAttribute('code',"Yahtzee.class");
+            app.setAttribute('width',"800px");
+            app.setAttribute('height',"600px");
+            //applet name parameter
+            param1.setAttribute('name',"Name");
+            param1.setAttribute('value',name);
+            //applet isNet parameter
+            param2.setAttribute('name',"IsNet");
+            param2.setAttribute('value',isNet);
+            
+            app.appendChild(param1);
+            app.appendChild(param2);
+            div2.appendChild(app);
+            div.appendChild(div2);
+            document.getElementsByTagName('body')[0].appendChild(div);
+            return false;
+        }
+
+    </script>
+  </head>
+
+  <body role="document">   
+  
+    <div class="container theme-showcase" role="main" id="setupDiv"
+        style="height:600px;background-image:url('images/paperfullhtml.png');
+        background-repeat:no-repeat;background-position:50%0%">
+
+
+    <div style="height:176px"></div>
+        
+      <form class="form-horizontal" role="form" id="form" onSubmit="return startGame()">
+        <!-- name -->
+        <div class="form-group">
+          <label for="name" class="col-sm-5 control-label"></label>
+          <div class="col-sm-2">
+            <input type="text" class="form-control" maxlength="10" name="name" id="name" placeholder="Name" required="">
+          </div>
+        </div>
+        <!--local or internet play?-->
+        <div class="form-group">
+            <label for="type" class="col-sm-5 control-label"></label>
+            <div class="radio-inline">
+              <label class="col-sm-1">
+                <input type="radio" name="playtype" id="playtypelocal" value="false" required>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+            </div>
+            <div class="radio-inline">
+              <label>
+                <input type="radio" name="playtype" id="playtypenet" value="true">&nbsp;</label>
+            </div>
+          </div>
+        <!-- submit -->
+        <div class="form-group">
+          <div class="col-sm-offset-5 col-sm-10">
+            <button type="submit" class="btn btn-success btn-lg">Play</button>
+          </div>
+        </div>
+      </form>
+    </div> <!-- /container -->
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="dist/js/bootstrap.min.js"></script>
+    <script src="assets/js/docs.min.js"></script>
+  </body>
+</html>
