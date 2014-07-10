@@ -169,6 +169,7 @@ public class Yahtzee extends JApplet implements ActionListener
     **/
     public void setUpStartMenu()
     {
+        boolean errorOccurred = false;
         PlayerQ = new LinkedList<Player>();
         FinishedQ = new LinkedList<Player>();
         LblName = new JLabel();
@@ -195,9 +196,12 @@ public class Yahtzee extends JApplet implements ActionListener
         
         if(useServer)
         {
-            startConnection();
-            setupInternet();
-            bg = new ImageIcon(getClass().getResource("waiting.png"));
+            errorOccurred = startConnection();
+            if(!errorOccurred)
+            {
+                setupInternet();
+                bg = new ImageIcon(getClass().getResource("waiting.png"));
+            }
         }
         else
         {
@@ -209,69 +213,86 @@ public class Yahtzee extends JApplet implements ActionListener
             bg = new ImageIcon(getClass().getResource("paperfullbg.png"));
         }
         
-        //background image
-        BG = new JLabel();
-        BG.setIcon(bg);
-        Window.setLayer(BG, 9);
-        Window.add(BG);
-        
-        add(Window);
-        Window.validate();
-        Window.repaint();
-        revalidate();
-        repaint();
-
-        if(useServer)
+        if(!errorOccurred)
         {
-            //run waitForServer() in a separate thread so EDT can draw GUI
-            SwingWorker worker = new SwingWorker(){
-                protected String doInBackground()
-                {
-                    waitForServer();
-                    return null;
-                }
-            };
-            worker.execute();
+            //background image
+            BG = new JLabel();
+            BG.setIcon(bg);
+            Window.setLayer(BG, 9);
+            Window.add(BG);
+            
+            add(Window);
+            Window.validate();
+            Window.repaint();
+            revalidate();
+            repaint();
+
+            if(useServer)
+            {
+                //run waitForServer() in a separate thread so EDT can draw GUI
+                SwingWorker worker = new SwingWorker(){
+                    protected String doInBackground()
+                    {
+                        waitForServer();
+                        return null;
+                    }
+                };
+                worker.execute();
+            }
         }
     }
     
     /**
     *   Connect to the server and send this player's name
+    *
+    *   @return whether an exception was thrown while attempting to connect
     **/
-    public void startConnection()
+    public boolean startConnection()
     {
+        boolean errorOccurred = false;
+        
         try
         {
             socket = new Socket(serverName, PORT);
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         } 
-        catch (UnknownHostException e) 
+        catch(UnknownHostException e) 
         {
             System.out.println("Unknown host: " + serverName);
-            System.exit(1);
+            errorOccurred = true;
         } 
         catch(IOException e) 
         {
             System.out.println("No I/O");
-            System.exit(1);
+            errorOccurred = true;
         }
         catch(Exception e)
         {
-            System.out.println("General Exception:" + e);
-            System.exit(1);
+            System.out.println("General Exception: " + e);
+            errorOccurred = true;
         }
         
-        //Send player's name to server
-        out.println(playerName);
+        if(errorOccurred)
+        {
+            bg = new ImageIcon(getClass().getResource("serverUnavailable.png"));
+            BG = new JLabel();
+            BG.setIcon(bg);
+            add(BG);
+            revalidate();
+            repaint();
+        }
+        else
+        {
+            //Send player's name to server
+            out.println(playerName);
+        }
+        
+        return errorOccurred;
     }
     
     /**
-    *   Cycle images on the waiting screen. Called by a SwingWorker in a way 
-    *   that it does not run on the EDT. As best as I can tell, this will not
-    *   cause issues since the only other GUI update at this time is to disable 
-    *   the Play! button. Will be changed to run on the EDT in the future, 
-    *   however, to adhere to best practices.
+    *   Cycle images on the waiting screen
     **/
     public void showDots(int idx)
     {
