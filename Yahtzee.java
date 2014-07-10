@@ -567,7 +567,7 @@ public class Yahtzee extends JApplet implements ActionListener
         //DicePanel.removeAll();
         //DicePanel.add(Box.createRigidArea(new Dimension(0,115)));
         //DicePanel.repaint();
-        PlayerDice.removeDice();
+        PlayerDice.animateDice(true);
         revalidate();
         repaint();
         
@@ -842,7 +842,7 @@ public class Yahtzee extends JApplet implements ActionListener
         StartMenuSub3.setOpaque(false);
         
         //add content to start menu
-        //layout manager is being difficult; add JPanels with no layout set
+        //add JPanels with no layout set
         JPanel CheatPanel1 = new JPanel();
         CheatPanel1.setOpaque(false);
         JPanel CheatPanel2 = new JPanel();
@@ -912,7 +912,7 @@ public class Yahtzee extends JApplet implements ActionListener
         //Play.setBorderPainted(false);
         Play.setContentAreaFilled(false);
         Play.setIcon(new ImageIcon(getClass().getResource("PlayNow.png")));
-        //layout manager is being difficult; add JPanel with no layout set
+        //add JPanel with no layout set
         JPanel BtnPanel = new JPanel();
         BtnPanel.setOpaque(false);
         BtnPanel.add(Play);
@@ -924,6 +924,24 @@ public class Yahtzee extends JApplet implements ActionListener
         
         Window.setLayer(StartMenu, 10);
         Window.add(StartMenu, BorderLayout.CENTER);
+        
+        //add listeners to dice to transmit holds across the network
+        for(int idx = 0; idx < 5; idx++)
+        {
+            final int index = idx;
+            PlayerDice.getDie(idx).addMouseListener(new MouseAdapter() 
+                {
+                    public void mousePressed(MouseEvent e)
+                    {
+                        if(SwingUtilities.isLeftMouseButton(e))
+                        {
+                            out.println("16");
+                            out.println(""+index);
+                        }
+                    }
+                }
+            );
+        }
     }
     
     /**
@@ -1037,7 +1055,7 @@ public class Yahtzee extends JApplet implements ActionListener
                 CheatPanelSub4, BoxLayout.LINE_AXIS));
         CheatPanelSub4.setOpaque(false);
         addCheats();
-        //layout manager is being difficult; add JPanels with no layout set
+
         JPanel CheatPanel1 = new JPanel();
         CheatPanel1.setOpaque(false);
         JPanel CheatPanel2 = new JPanel();
@@ -1091,7 +1109,7 @@ public class Yahtzee extends JApplet implements ActionListener
         Play.setBorderPainted(false);
         Play.setContentAreaFilled(false);
         Play.setIcon(new ImageIcon(getClass().getResource("PlayButton.png")));
-        //layout manager is being difficult; add JPanel with no layout set
+
         JPanel BtnPanel = new JPanel();
         BtnPanel.setOpaque(false);
         BtnPanel.add(Play);
@@ -1125,8 +1143,8 @@ public class Yahtzee extends JApplet implements ActionListener
                 doRollBtn();
                 if(useServer)
                 {
-                    out.println(""+14);
-                    out.println(""+15); //signal that die values are incoming
+                    out.println("14");
+                    out.println("15"); //signal that die values are incoming
                     out.println(PlayerDice.getDieValues());
                 }
             }
@@ -1249,8 +1267,8 @@ public class Yahtzee extends JApplet implements ActionListener
         }
         else if(msg == 14)
         {//roll button clicked
-            PlayerDice.addDice();
             //no need to roll dice here; that was done in doRollBtn()
+            PlayerDice.animateDice(false);
             PlayerTurn.takeTurn();
             CurrentPlayer.showPotential(PlayerDice.getDieValues());
             
@@ -1263,10 +1281,22 @@ public class Yahtzee extends JApplet implements ActionListener
                 BtnRoll.setEnabled(false);
             }
         }
+        else if(msg == 16)
+        {//Die click incoming
+            try
+            {
+                PlayerDice.holdDie(Integer.parseInt(in.readLine()));
+            }
+            catch(IOException ex)
+            {
+                System.out.println("IOException1: Read " +
+                        "in serverEvent()");
+            }
+        }
         else if(msg != 15)
             System.out.println("Unrecognized message from server: "+message);
             
-        //}System.out.println(message + " from applet: " + orderIdx);
+        //System.out.println(message + " from applet: " + orderIdx);
         if(msg == 15)
         {//string of die values incoming
             String dieValues = null;
@@ -1276,7 +1306,7 @@ public class Yahtzee extends JApplet implements ActionListener
             }
             catch(IOException ex)
             {
-                System.out.println("IOException: Read " +
+                System.out.println("IOException2: Read " +
                         "in serverEvent()");
             }
             
@@ -1288,6 +1318,8 @@ public class Yahtzee extends JApplet implements ActionListener
             }
             CurrentPlayer.showPotential(PlayerDice.getDieValues());
         }
+        
+        
         getAnotherMessage();
     }
     
@@ -1318,15 +1350,11 @@ public class Yahtzee extends JApplet implements ActionListener
         
         if(!useServer)
         {
-            PlayerDice.addDice();
+            PlayerDice.animateDice(false);
             PlayerTurn.takeTurn();
             CurrentPlayer.showPotential(PlayerDice.getDieValues());
             
-            if(!PlayerTurn.canRoll())
-            {
-                BtnRoll.setEnabled(false);
-            }
-            if(CurrentPlayer != myPlayer)
+            if(!PlayerTurn.canRoll() || CurrentPlayer != myPlayer)
             {
                 BtnRoll.setEnabled(false);
             }

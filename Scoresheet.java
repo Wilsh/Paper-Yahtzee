@@ -230,7 +230,7 @@ public class Scoresheet extends JPanel
         NumYahtzeesLabel = new ImageIcon(getClass()
                 .getResource("YahtzeeBonus.png"));
         UpperBonusLabel = new ImageIcon(getClass()
-                .getResource("UpperBonusUnchecked.png"));
+                .getResource("Meter0.png"));
         NumYahtzees.setIcon(NumYahtzeesLabel);
         UpperBonus.setIcon(UpperBonusLabel);
     }
@@ -478,7 +478,7 @@ public class Scoresheet extends JPanel
                         score++;
                     }
                 }
-                if(score > 4)
+                if(score > 3)
                     isGoodScore = true;
                 return score;
                 
@@ -491,7 +491,7 @@ public class Scoresheet extends JPanel
                         score += 2;
                     }
                 }
-                if(score > 8)
+                if(score > 6)
                     isGoodScore = true;
                 return score;
                 
@@ -696,16 +696,24 @@ public class Scoresheet extends JPanel
             totalScore += getScore(idx);
         }
         
-        //determine if upper bonus achieved
+        //determine if upper bonus achieved and update bonus meter
         if(totalScore >= 63)
         {
             totalScore += 35;
-            UpperBonusLabel = new ImageIcon(getClass()
-                .getResource("UpperBonusChecked.png"));
-            UpperBonus.setIcon(UpperBonusLabel);
+            UpperBonus.setIcon(new ImageIcon(getClass()
+                .getResource("Meter10.png")));
             hasUBonus = true;
         }
-            
+        else if(totalScore < 60)
+        {
+            String file = new String("Meter"+totalScore/6+".png");
+            UpperBonus.setIcon(new ImageIcon(getClass().getResource(file)));
+        }
+        else
+        {
+            UpperBonus.setIcon(new ImageIcon(getClass()
+                .getResource("Meter9.png")));
+        }
             
         for(int idx = 6; idx < 13; idx++)
         {

@@ -59,8 +59,7 @@ public class Turn
     }
     
     /**
-    *   Roll the dice and display the roll menu if it is the first or
-    *   second roll.
+    *   Update the Dialog panel or call methods for a robot player
     *
     *   @return whether the player has used all three rolls
     **/
@@ -73,19 +72,51 @@ public class Turn
         {
             if(isRobot)
             {
-               //DialogPanel.setAction("Rolling the dice for robot player");
-                ThePlayer.getRollChoice(TheDice);
+                //wait for dice animation to finish before selecting holds
+                SwingWorker timer = new SwingWorker()
+                {
+                    protected String doInBackground()
+                    {
+                        try
+                        {
+                            Thread.sleep(1000);
+                        }
+                        catch(Exception ex)
+                        {
+                          System.out.println(
+                            "Turn.java takeTurn() Exception1: sleep failed");
+                        }
+                        return null;
+                    }
+                    protected void done()
+                    {
+                        ThePlayer.getRollChoice(TheDice);
+                        DialogPanel.setButton(rollCount);
+                    }
+                };
+                timer.execute();
+                
             }
             else
             {
                 DialogPanel.setAction("Roll or score a category");
+                DialogPanel.setButton(rollCount);
             }
-            DialogPanel.setButton(rollCount);
         }
         else
         {
             if(isRobot)
             {
+                try
+                {
+                    Thread.sleep(2000);
+                }
+                catch(Exception ex)
+                {
+                    System.out.println(
+                        "Turn.java takeTurn() Exception2: sleep failed");
+                }
+                
                 ThePlayer.setCategory(-1, TheDice.getDieValues());
             }
             else

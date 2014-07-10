@@ -17,7 +17,11 @@ public class Dice extends JPanel
 {
     private RandomNum RandomDieValue;
     private Die[] TheDice;
-    private boolean[] IsHeld;
+    private SoundLib Sound;
+    private SoundLib RemoveSound;
+    private String[] soundFiles1, soundFiles2;
+    private boolean showingDice;
+    private volatile boolean isAnimationDone = true;
     
 	/**
     *   Constructor initializes the pseudorandom number generator and the array
@@ -27,19 +31,26 @@ public class Dice extends JPanel
     *   represents a value on a die. Using a value < 0 results in a different
     *   number each time; using a value >= 0 allows a game to be repeated
     *   for testing purposes.
-    *
-    *   @param a is the main Yahtzee class
     **/
 	public Dice(int seed)
 	{
         super();
         RandomDieValue = new RandomNum(seed);
+        showingDice = false;
 		
         TheDice = new Die[5];
         for(int idx = 0; idx < 5; idx++)
         {
-            TheDice[idx] = new Die(RandomDieValue.getNum());
+            TheDice[idx] = new Die(RandomDieValue.getNum(), idx);
         }
+        
+        soundFiles1 = new String[1];
+        soundFiles1[0] = new String("putDie.wav");
+        
+        soundFiles2 = new String[1];
+        soundFiles2[0] = new String("removeDie1.wav");
+        //soundFiles2[1] = new String("removeDie2.wav");
+        RemoveSound = new SoundLib(soundFiles2);
         
         setOpaque(false);
         //setBackground(Color.blue);
@@ -51,44 +62,197 @@ public class Dice extends JPanel
 	}
     
     /**
+    *   @return a reference to a Die object contained in the array TheDice
+    *
+    *   @param index is the index of the Die to be returned
+    **/
+    public Die getDie(int index)
+    {
+        return TheDice[index];
+    }
+    
+    /**
     *   add the dice to this panel using animation
     **/
-    public void addDice()
+    private void addDice()
     {
         removeAll();
-        add(TheDice[0]);
-        TheDice[0].setBounds(150,10,100,100);
-        add(TheDice[1]);
-        TheDice[1].setBounds(250,10,100,100);
-        add(TheDice[2]);
-        TheDice[2].setBounds(350,10,100,100);
-        add(TheDice[3]);
-        TheDice[3].setBounds(450,10,100,100);
-        add(TheDice[4]);
-        TheDice[4].setBounds(550,10,100,100);
+        for(int idx = 0; idx < 5; idx++)
+        {
+            add(TheDice[idx]);
+            TheDice[idx].putImage();
+            slideDieIn(idx);
+        }
         
         revalidate();
-        repaint();
+        showingDice = true;
     }
     
     /**
-    *   remove the dice from this panel using animation
-    **/
-    public void removeDice()
-    {
-        removeAll();
-        repaint();
-    }
-    
-    /**
-    *   remove a die and add another in its place using animation
+    *   Move a die upwards into position. Timed using a worker thread.
+    *   The start of the animation is delayed more for each successive
+    *   die to be animated, starting at no delay for the first die.
     *
-    *   @param index is the die to remove, counting from 0, left-to-right
+    *   @param index is the index of the Die in TheDice[] to animate
     **/
-    public void replaceDie(int index)
+    private void slideDieIn(final int index)
     {
-        //TheDice[index]
+        if(!isDieHeld(index))
+        {
+            int count = 0;
+            
+            //gather a count of the held dice for proper delay timing
+            for(int idx = 0; idx < index; idx++)
+            {
+                if(isDieHeld(idx))
+                    count++;
+            }
+            
+            final int numHeld = count;
+            
+            SwingWorker animateDie = new SwingWorker(){
+                protected String doInBackground()
+                {
+                    try
+                    {   //delay the start of the animation based on the index
+                        //and number of held dice
+                        Thread.sleep(100*(index-numHeld));
+                    }
+                    catch(Exception ex)
+                    {
+                        System.out.println(
+                            "Dice.java slideDieIn() Exception1: sleep failed");
+                    }
+            
+                    Sound = new SoundLib(soundFiles1);
+                    Sound.playSound("putDie.wav");
+                    for(int idx = 0; idx < 20; idx++)
+                    {
+                        try
+                        {
+                            Thread.sleep(12);
+                        }
+                        catch(Exception ex)
+                        {
+                          System.out.println(
+                            "Dice.java slideDieIn() Exception2: sleep failed");
+                        }
+                        process(new String[1], idx);
+                    }
+                    return null;
+                }
+                protected void process(String[] stuff, int idx)
+                {
+                    TheDice[index].setBounds(150+100*index,105-5*idx,100,100);
+                    repaint();
+                }
+            };
+            animateDie.execute();
+        }
     }
+    
+    /**
+    *   Move a die downward off the board using a worker thread for animation
+    *   timing.
+    *
+    *   @param index is the index of the Die in TheDice[] to animate
+    *   
+    *   @param allDice determines whether to ignore the held flag in order
+    *   to remove all of the dice
+    **/
+    private void slideDieOut(final int index, boolean allDice)
+    {
+        if(allDice || !isDieHeld(index))
+        {
+            SwingWorker animateDie = new SwingWorker(){
+                protected String doInBackground()
+                {
+                    RemoveSound.playSound("removeDie1.wav");
+                    for(int idx = 0; idx < 20; idx++)
+                    {
+                        try
+                        {
+                            Thread.sleep(12);
+                        }
+                        catch(Exception ex)
+                        {
+                          System.out.println(
+                            "Dice.java slideDieOut() Exception2: sleep failed");
+                        }
+                        process(new String[1], idx);
+                    }
+                    return null;
+                }
+                protected void process(String[] stuff, int idx)
+                {
+                    TheDice[index].setBounds(150+100*index,6*idx+10,100,100);
+                    repaint();
+                }
+            };
+            animateDie.execute();
+        }
+    }
+    
+    /**
+    *   Remove the dice from this panel using animation
+    *
+    *   @param allDice determines whether to ignore the held flag in order
+    *   to remove all of the dice
+    **/
+    private void removeDice(boolean allDice)
+    {
+        for(int idx = 0; idx < 5; idx++)
+            slideDieOut(idx, allDice);
+        //removeAll();
+        //repaint();
+        showingDice = false;
+    }
+    
+    /**
+    *   Main method to control dice animation.
+    *
+    *   @param endTurn determines whether the dice reappear if they are taken
+    *   off of the game board
+    **/
+    public void animateDice(boolean endTurn)
+    {
+        if(endTurn)
+            removeDice(true);
+        else if(showingDice)
+        {
+            removeDice(false);
+            //wait for dice removal animation to complete before adding
+            //them again
+            SwingWorker timer = new SwingWorker()
+            {
+                protected String doInBackground()
+                {
+                    try
+                    {
+                        Thread.sleep(500);
+                    }
+                    catch(Exception ex)
+                    {
+                      System.out.println(
+                        "Dice.java animateDice() Exception1: sleep failed");
+                    }
+                    return null;
+                }
+                protected void done()
+                {
+                    addDice();
+                }
+            };
+            timer.execute();
+        }
+        else
+            addDice();
+    }
+    
+    public boolean isAnimationDone()
+    {
+        return isAnimationDone;
+    }   
     
     /**
     *   Set the number held by a Die at a specific location in the array
@@ -99,7 +263,7 @@ public class Dice extends JPanel
     **/
 	public void setNumber(int location, int newValue)
 	{
-		TheDice[location].setNumber(newValue);
+		TheDice[location].setNumber(newValue, false);
 	}
 	
 	/**
@@ -148,7 +312,8 @@ public class Dice extends JPanel
     }
     
     /**
-    *   Generate new values for dice that are not held by the player
+    *   Generate new values for dice that are not held, but do not update the 
+    *   images on the dice
     **/
     public void rollDice()
     {
@@ -156,7 +321,7 @@ public class Dice extends JPanel
         {
             if(!TheDice[idx].isHeld())
             {
-                TheDice[idx].setNumber(RandomDieValue.getNum());
+                TheDice[idx].setNumber(RandomDieValue.getNum(), false);
             }
         }
     }

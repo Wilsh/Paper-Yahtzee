@@ -16,6 +16,7 @@ import java.awt.event.*;
 public class Die extends JButton
 {
     private int number;
+    private int indexInDice;
     private ImageIcon[] Faces;
     private ImageIcon[] Disabled;
     private boolean held = false;
@@ -30,12 +31,17 @@ public class Die extends JButton
     *       object.
     *
     *   @param initVal is the initial value used as the number on the die
+    *
+    *   @param idx is the index of this object as it exists in the array
+    *       of Die objects in the Dice class. Used for transmitting hold
+    *       information in networked play.
     **/
-	public Die(int initVal)
+	public Die(int initVal, int idx)
 	{
         super();
         try{
 		number = initVal;
+        indexInDice = idx;
         sound = new String[1];
         sound[0] = new String("smallClick.wav");
         Click = new SoundLib(sound);
@@ -61,7 +67,7 @@ public class Die extends JButton
         
         this.addMouseListener(new MouseAdapter() 
             {
-                public void mouseClicked(MouseEvent e)
+                public void mousePressed(MouseEvent e)
                 {
                     if(SwingUtilities.isLeftMouseButton(e))
                     {
@@ -85,6 +91,15 @@ public class Die extends JButton
         setContentAreaFilled(false);
         }catch (Exception e) { e.printStackTrace();}
 	}
+    
+    /**
+    *   @return the index of this object as it exists in the array
+    *       of Die objects in the Dice class.
+    **/
+    public int getDieIndex()
+    {
+        return indexInDice;
+    }
 	
     /**
     *   Toggle the held flag for the die
@@ -133,11 +148,15 @@ public class Die extends JButton
     *   Set the number on the die
     *
 	*   @param newValue is the new number
+    *
+    *   @param addImage determines whether the new number is displayed 
+    *   automatically
     **/
-	public void setNumber(int newValue)
+	public void setNumber(int newValue, boolean addImage)
 	{
 		number = newValue;
-        putImage();
+        if(addImage)
+            putImage();
         validate();
 	}
     
@@ -158,65 +177,19 @@ public class Die extends JButton
     private void createCheatPopup()
     {
         popup = new JPopupMenu();
-        menuItem = new JMenuItem("1");
-        menuItem.addActionListener(new ActionListener() 
-            {
-                public void actionPerformed(ActionEvent e)
+        for(int num = 1; num < 7; num++)
+        {
+            final int theNum = num;
+            menuItem = new JMenuItem(""+num);
+            menuItem.addActionListener(new ActionListener() 
                 {
-                    setNumber(1);
+                    public void actionPerformed(ActionEvent e)
+                    {
+                        setNumber(theNum, true);
+                    }
                 }
-            }
-        );
-        popup.add(menuItem);
-        menuItem = new JMenuItem("2");
-        menuItem.addActionListener(new ActionListener() 
-            {
-                public void actionPerformed(ActionEvent e)
-                {
-                    setNumber(2);
-                }
-            }
-        );
-        popup.add(menuItem);
-        menuItem = new JMenuItem("3");
-        menuItem.addActionListener(new ActionListener() 
-            {
-                public void actionPerformed(ActionEvent e)
-                {
-                    setNumber(3);
-                }
-            }
-        );
-        popup.add(menuItem);
-        menuItem = new JMenuItem("4");
-        menuItem.addActionListener(new ActionListener() 
-            {
-                public void actionPerformed(ActionEvent e)
-                {
-                    setNumber(4);
-                }
-            }
-        );
-        popup.add(menuItem);
-        menuItem = new JMenuItem("5");
-        menuItem.addActionListener(new ActionListener() 
-            {
-                public void actionPerformed(ActionEvent e)
-                {
-                    setNumber(5);
-                }
-            }
-        );
-        popup.add(menuItem);
-        menuItem = new JMenuItem("6");
-        menuItem.addActionListener(new ActionListener() 
-            {
-                public void actionPerformed(ActionEvent e)
-                {
-                    setNumber(6);
-                }
-            }
-        );
-        popup.add(menuItem);
+            );
+            popup.add(menuItem);
+        }
     }
 }
