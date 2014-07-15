@@ -31,13 +31,36 @@ public class Robot extends Player
 	}
 	
 	/**
-    *   Check for yahtzee or hold any pairs.
+    *   Decide which dice to hold.
     *
     *   @param TheDice are needed by a computer player to make a choice
     **/
 	public void getRollChoice(Dice TheDice)
 	{
         int[] valueCount = new int[6];
+        
+        //score a large straight
+        if(MyScore.getScore(10) != 0 && 
+                MyScore.calculateScore(10, TheDice.getDieValues()) == 40)
+        {
+            TheDice.holdAll();
+            return;
+        }
+        
+        //have a small straight, check whether to look for a large straight
+        if(MyScore.calculateScore(9, TheDice.getDieValues()) == 30)
+        {
+            if(MyScore.getScore(10) == 0)
+            { //able to score a large straight
+                holdForOutsideStraight(TheDice);
+                return;
+            }
+            else if(MyScore.getScore(9) == 0)
+            { //able to score a small straight and already have large straight
+                TheDice.holdAll();
+                return;
+            }
+        }
         
         //ensure valueCount indicies are initialized to 0
         for(int idx = 0; idx < 6; idx++)
@@ -53,11 +76,11 @@ public class Robot extends Player
         {
             //score dice for yahtzee
             if(valueCount[idx] == 5)
-            {
+            { 
                 TheDice.holdAll();
                 break;
             }
-            
+
             //hold dice if a pair exists
             if(valueCount[idx] > 1)
             {
@@ -181,6 +204,54 @@ public class Robot extends Player
                             !TheDice.isDieHeld(dieIdx))
                     {
                         TheDice.holdDie(dieIdx);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+    *   Hold any three or more dice in consecutive order.
+    *
+    *   @param TheDice is the array of Die objects
+    **/
+    public void holdForOutsideStraight(Dice TheDice)
+    {
+        int[] numToHold = new int[3];
+        int[] valueCount = new int[6];
+        
+        TheDice.resetHolds();
+        
+        //ensure valueCount indicies are initialized to 0
+        for(int idx = 0; idx < 6; idx++)
+            valueCount[idx] = 0;
+        
+        //gather a count of each die value
+        for(int idx = 0; idx < 5; idx++)
+        {
+            valueCount[(TheDice.getNum(idx) - 1)]++;
+        }
+        
+        for(int idx = 0; idx < 4; idx++)
+        {
+            if(valueCount[idx] > 0 && valueCount[idx + 1] > 0 && 
+                    valueCount[idx + 2] > 0)
+            {//hold any three dice in consecutive order
+                numToHold[0] = idx + 1;
+                numToHold[1] = idx + 2;
+                numToHold[2] = idx + 3;
+                
+                for(int counter = 0; counter < 3; counter++)
+                {
+                    for(int dieIdx = 0; dieIdx < 5; dieIdx++)
+                    {
+                        if(TheDice.getNum(dieIdx) == numToHold[counter])
+                        {
+                            if(!TheDice.isDieHeld(dieIdx))
+                                TheDice.holdDie(dieIdx);
+                            dieIdx = 5; //ensure that multiple dice with the 
+                                        //same value are not held
+                        }
                     }
                 }
             }
