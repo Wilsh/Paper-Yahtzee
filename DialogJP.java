@@ -24,8 +24,8 @@ public class DialogJP extends JLayeredPane
     private JPanel LineTurns;
     private JPanel LineAction;
     private JPanel LineButton;
-    private JLabel[] Player;
-    private JLabel[] Turns;
+    private JLabel[] FirstLine;
+    private JLabel[] SecondLine;
     private JLabel[] Action;
     private JLabel BG;
     private ImageIcon bg;
@@ -61,21 +61,7 @@ public class DialogJP extends JLayeredPane
         RolloverImgs[2] = new ImageIcon(getClass().getResource(
                 "rollButtonActive3.png"));
         
-        RollButton = new JButton();
-        //RollButton.setPreferredSize(new Dimension(250,75));
-        RollButton.setBorder(BorderFactory.createEmptyBorder());
-        RollButton.setOpaque(false);
-        RollButton.setBackground(new Color(0,0,0,0));
-        RollButton.setFocusPainted(false);
-        RollButton.setContentAreaFilled(false);
-        RollButton.addMouseListener(new MouseAdapter() 
-        {
-            public void mouseEntered(MouseEvent e)
-            {
-                if(RollButton.isEnabled())
-                    Sounds.playSound("mouseOver.wav");
-            }
-        });
+        RollButton = getNewButton();
         
         HoldComponents = new JPanel();
         HoldComponents.setOpaque(false);
@@ -140,42 +126,90 @@ public class DialogJP extends JLayeredPane
 	}
     
     /**
-    *   Display the name of the current player.
+    *   Create a new JButton with a rollover sound that is prepared for 
+    *   displaying an image.
+    *
+    *   @return a reference to the new button
+    **/
+    private JButton getNewButton()
+    {
+        final JButton Button = new JButton();
+        Button.setBorder(BorderFactory.createEmptyBorder());
+        //Button.setPreferredSize(new Dimension(250,75));
+        Button.setOpaque(false);
+        Button.setBackground(new Color(0,0,0,0));
+        Button.setFocusPainted(false);
+        Button.setContentAreaFilled(false);
+        Button.addMouseListener(new MouseAdapter() 
+        {
+            public void mouseEntered(MouseEvent e)
+            {
+                if(Button.isEnabled())
+                    Sounds.playSound("mouseOver.wav");
+            }
+        });
+        return Button;
+    }
+    
+    /**
+    *   Display the name of the current player on the first line.
     *
     *   @param name is the current player's name
     **/
     public void setPlayer(String name)
     {
-        Player = ImageText.getLetters(name + "'s turn");
-        length = Player.length;
+        setFirstLine(name + "'s turn");
+    }
+    
+    /**
+    *   Change the text of the first line.
+    *
+    *   @param message is the full text to place on the line
+    **/
+    private void setFirstLine(String message)
+    {
+        FirstLine = ImageText.getLetters(message);
+        length = FirstLine.length;
         LinePlayer.removeAll();
         for(int idx = 0; idx < length; idx++)
-            LinePlayer.add(Player[idx]);
+            LinePlayer.add(FirstLine[idx]);
         LinePlayer.add(Box.createRigidArea(new Dimension((355-(length*12)),0)));
-        LinePlayer.validate();
+        LinePlayer.revalidate();
     }
 
     /**
-    *   Display the current player's number of remaining turns.
+    *   Display the current player's number of remaining turns on the 
+    *   second line.
     *
     *   @param numTurns is the player's number of remaining turns
     **/
     public void setTurns(int numTurns)
     {
         if(numTurns != 1)
-            Turns = ImageText.getLetters(numTurns + " turns remaining");
+            setSecondLine(numTurns + " turns remaining");
         else
-            Turns = ImageText.getLetters("Final turn");
-        length = Turns.length;
-        LineTurns.removeAll();
-        for(int idx = 0; idx < length; idx++)
-            LineTurns.add(Turns[idx]);
-        LineTurns.add(Box.createRigidArea(new Dimension((355-(length*12)),0)));
-        LineTurns.validate();
+            setSecondLine("Final turn");
     }
     
     /**
-    *   Display a message indicating the player's possible choices.
+    *   Change the text of the second line.
+    *
+    *   @param message is the full text to place on the line
+    **/
+    private void setSecondLine(String message)
+    {
+        SecondLine = ImageText.getLetters(message);
+        length = SecondLine.length;
+        LineTurns.removeAll();
+        for(int idx = 0; idx < length; idx++)
+            LineTurns.add(SecondLine[idx]);
+        LineTurns.add(Box.createRigidArea(new Dimension((355-(length*12)),0)));
+        LineTurns.revalidate();
+    }
+    
+    /**
+    *   Display a message indicating the player's possible choices on the
+    *   third line.
     *
     *   @param message is the message to display
     **/
@@ -187,8 +221,46 @@ public class DialogJP extends JLayeredPane
         for(int idx = 0; idx < length; idx++)
             LineAction.add(Action[idx]);
         LineAction.add(Box.createRigidArea(new Dimension((355-(length*12)),0)));
-        LineAction.validate();
+        LineAction.revalidate();
     }
+    
+    /**
+    *   Display a game over message, display whether the player in control of
+    *   this applet won or lost, and replace the roll button with a play 
+    *   again button.
+    *
+    *   @param isSinglePlayer is whether the game has only one player
+    *
+    *   @param score is the player's score
+    *
+    *   @param wonGame is whether the player in control of this applet won
+    **/
+    public void gameOver(boolean isSinglePlayer, int score, boolean wonGame)
+    {
+        setFirstLine("Game Over");
+        setSecondLine("Score: " + score);
+        if(isSinglePlayer)
+            setAction(" ");
+        else
+        {
+            if(wonGame)
+                setAction("You Won!");
+            else
+                setAction("You Lost!");
+        }
+        LineButton.removeAll();
+        //reuse RollButton so that a reference can be returned using getButton()
+        RollButton = getNewButton();
+        RollButton.setIcon(new ImageIcon(
+                getClass().getResource("playAgain.png")));
+        RollButton.setRolloverIcon(new ImageIcon(
+                getClass().getResource("playAgainActive.png")));
+        LineButton.add(RollButton);
+        LineButton.add(Box.createRigidArea(new Dimension(20,0)));
+        LineButton.revalidate();
+    }
+    
+    
     
     /**
     *   Change the number displayed on the roll button.

@@ -24,24 +24,29 @@ public class Die extends JButton
     private JMenuItem menuItem;
 	private SoundLib Click;
     private String[] sound;
+    private boolean cheatAllowed;
     
 	/**
     *   Constructor initializes the value on the die, loads images that are
-    *       associated with each value, and adds an action listener to this
-    *       object.
+    *   associated with each value, and adds an action listener to this
+    *   object.
     *
     *   @param initVal is the initial value used as the number on the die
     *
     *   @param idx is the index of this object as it exists in the array
-    *       of Die objects in the Dice class. Used for transmitting hold
-    *       information in networked play.
+    *   of Die objects in the Dice class. Used for transmitting hold
+    *   information in networked play.
+    *
+    *   @param canCheat determines whether a player can right-click a Die to
+    *   change its value
     **/
-	public Die(int initVal, int idx)
+	public Die(int initVal, int idx, boolean canCheat)
 	{
         super();
         try{
 		number = initVal;
         indexInDice = idx;
+        cheatAllowed = canCheat;
         sound = new String[1];
         sound[0] = new String("smallClick.wav");
         Click = new SoundLib(sound);
@@ -74,7 +79,7 @@ public class Die extends JButton
                         Click.playSound("smallClick.wav");
                         hold();
                     }
-                    else
+                    else if(cheatAllowed)
                     {
                         popup.show(e.getComponent(), e.getX(), e.getY());
                     }

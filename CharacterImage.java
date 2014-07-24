@@ -29,7 +29,7 @@ public class CharacterImage
 	{try{
         Numbers = new ImageIcon[11];
         LowLetters = new ImageIcon[26];
-        SpecialChar = new ImageIcon[5];
+        SpecialChar = new ImageIcon[6];
         
         Numbers[0] = new ImageIcon(getClass().getResource("0.png"));
         Numbers[1] = new ImageIcon(getClass().getResource("1.png"));
@@ -81,6 +81,8 @@ public class CharacterImage
                 .getResource("pound.png"));
         SpecialChar[4] = new ImageIcon(getClass()
                 .getResource("unknown.png"));
+        SpecialChar[4] = new ImageIcon(getClass()
+                .getResource("exclamation.png"));
         }catch (Exception e) { e.printStackTrace();}
     }
     
@@ -349,6 +351,10 @@ public class CharacterImage
                 }
                 case 35:{//pound sign
                     images[idx].setIcon(SpecialChar[3]);
+                    break;
+                }
+                case 33:{//exclamation point
+                    images[idx].setIcon(SpecialChar[5]);
                     break;
                 }
                 default:

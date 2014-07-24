@@ -74,11 +74,11 @@ public class Yahtzee extends JApplet implements ActionListener
     
     //network components
     public static final int PORT = 0;
+    final String SERVERNAME = "redacted";
     boolean useServer = false;
     Socket socket = null;
     PrintWriter out = null;
     BufferedReader in = null;
-    String serverName = "redacted";
     String playerName;
     String isInternet;
     String[] playerNames;
@@ -86,6 +86,7 @@ public class Yahtzee extends JApplet implements ActionListener
     volatile boolean stillWaitingForServer;
     ImageIcon[] icons;
     private JLabel Dots;
+    boolean isGameOver = false;
     
     //sounds
     SoundLib Sounds;
@@ -179,7 +180,7 @@ public class Yahtzee extends JApplet implements ActionListener
         PlayerPanel = new JPanel();
         ScorePanel = new JPanel();
         DicePanel = new JPanel();
-        PlayerDice = new Dice(-1);
+        PlayerDice = new Dice(-1, !useServer);
         PreviousPanel = new PreviousJP();
         //DialogPanel = new JPanel();
         PlayerPanel.setOpaque(false);
@@ -253,13 +254,13 @@ public class Yahtzee extends JApplet implements ActionListener
         
         try
         {
-            socket = new Socket(serverName, PORT);
+            socket = new Socket(SERVERNAME, PORT);
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         } 
         catch(UnknownHostException e) 
         {
-            System.out.println("Unknown host: " + serverName);
+            System.out.println("Unknown host: " + SERVERNAME);
             errorOccurred = true;
         } 
         catch(IOException e) 
@@ -375,14 +376,14 @@ public class Yahtzee extends JApplet implements ActionListener
         getAnotherMessage();
     }
     
-    /**
+    /*
     *   Transform a String into a series of images on a JPanel.
     *   Currently unused in this class.
     *
     *   @param word is the string to transform
     *
     *   @return JLabel containing image representation of the String
-    **/    
+    **   
     public JPanel transformChars(String word)
     {
         JPanel theImages = new JPanel();
@@ -395,7 +396,7 @@ public class Yahtzee extends JApplet implements ActionListener
             theImages.add(tempArray[idx]);
         }
         return theImages;
-    }
+    } */
     
     /**
     *   Initialize the dice and players then call playGame() to set up
@@ -568,6 +569,8 @@ public class Yahtzee extends JApplet implements ActionListener
                 LastTurn = new SoundTask(1000 * 1, "lastTurn.wav");
             TurnAlert = new SoundTask(1000 * 60, "hurryUp.wav");
         }
+        else
+            BtnRoll.setEnabled(false);
             
         PlayerTurn = new Turn(PlayerDice, CurrentPlayer, DialogPanel);
     }
@@ -585,9 +588,6 @@ public class Yahtzee extends JApplet implements ActionListener
         CurrentPlayer.hidePotential();
         
         CurrentPlayer.disableCategories();
-        //DicePanel.removeAll();
-        //DicePanel.add(Box.createRigidArea(new Dimension(0,115)));
-        //DicePanel.repaint();
         PlayerDice.animateDice(true);
         revalidate();
         repaint();
@@ -668,8 +668,14 @@ public class Yahtzee extends JApplet implements ActionListener
         }
         else
         {
+            //display scoresheet for the player in control of the applet
+            ScorePanel.remove(CurrentPlayer.getScoresheet());
+            ScorePanel.add(myPlayer.getScoresheet());
+            myPlayer.hidePotential();
+            
             if(useServer)
             {
+                isGameOver = true;
                 //tell server the game has finished
                 out.println("GAMEOVER");
             }
@@ -682,17 +688,14 @@ public class Yahtzee extends JApplet implements ActionListener
     **/
     public void gameOver()
     {
-        int dialog = 0;
+        SoundTask GameEnded = new SoundTask(1500, "anotherRound.wav");
         
         if(numPlayers == 1)
         {
-            CurrentPlayer = FinishedQ.pop();
-            dialog = JOptionPane.showConfirmDialog(Window, 
-                    "Score: " + CurrentPlayer.getFinalScore() +
-                    ". Play again?", "Game Over", JOptionPane.YES_NO_OPTION);
+            DialogPanel.gameOver(true, myPlayer.getFinalScore(), true);
         }
         else
-        {          
+        {
             int score;
             int highest = 0;
             for(int idx = 0; idx < numPlayers; idx++)
@@ -708,48 +711,51 @@ public class Yahtzee extends JApplet implements ActionListener
             
             if(myPlayer.getFinalScore() == highest)
             {
-                if(!useServer)
-                {//win dialog for local game
-                    dialog = JOptionPane.showConfirmDialog(Window, 
-                        "You won! Play again?", "Game Over", 
-                        JOptionPane.YES_NO_OPTION);
-                }
-                else
-                {//win dialog for network game
-                    JOptionPane.showMessageDialog(Window,
-                        "You won! Score: " + myPlayer.getFinalScore(),
-                        "Game Over",
-                        JOptionPane.PLAIN_MESSAGE);
-                }
+                DialogPanel.gameOver(false, myPlayer.getFinalScore(), true);
             }
             else
             {
-                if(!useServer)
-                {//lose dialog for local game
-                    dialog = JOptionPane.showConfirmDialog(Window, 
-                        "You lost. Play again?", "Game Over", 
-                        JOptionPane.YES_NO_OPTION);
-                }
-                else
-                {//lose dialog for network game
-                    JOptionPane.showMessageDialog(Window,
-                        "You lost. Score: " + myPlayer.getFinalScore(),
-                        "Game Over",
-                        JOptionPane.PLAIN_MESSAGE);
-                }
+                DialogPanel.gameOver(false, myPlayer.getFinalScore(), false);
             }
         }
         
-        if(dialog == JOptionPane.YES_OPTION)
+        DialogPanel.getButton().addMouseListener(new MouseAdapter() 
         {
-            //restart game
-            //getAppletContext().showDocument(new URL("javascript:function()"));
-            remove(Window);
-            revalidate();
-            repaint();
-            numPlayers = 1;
-            setUpStartMenu();
+            public void mousePressed(MouseEvent e)
+            {
+                if(SwingUtilities.isLeftMouseButton(e))
+                {
+                    Sounds.playSound("putOnTab.wav");
+                    resetGame();
+                }
+            }
+        });
+    }
+    
+    /**
+    *   Reset the applet for a new game
+    **/
+    public void resetGame()
+    {
+        if(useServer)
+        {
+            try
+            {
+                socket.close();
+                isGameOver = false;
+            }
+            catch(IOException e)
+            {
+                System.out.println("Could not close socket");
+                System.exit(-1);
+            }
         }
+
+        remove(Window);
+        revalidate();
+        repaint();
+        numPlayers = 1;
+        setUpStartMenu();
     }
     
     /**
@@ -1289,9 +1295,8 @@ public class Yahtzee extends JApplet implements ActionListener
         else if(msg == 14)
         {//roll button clicked
             //no need to roll dice here; that was done in doRollBtn()
-            PlayerDice.animateDice(false);
             PlayerTurn.takeTurn();
-            CurrentPlayer.showPotential(PlayerDice.getDieValues());
+            //CurrentPlayer.showPotential(PlayerDice.getDieValues());
             
             if(!PlayerTurn.canRoll())
             {
@@ -1306,7 +1311,9 @@ public class Yahtzee extends JApplet implements ActionListener
         {//Die click incoming
             try
             {
-                PlayerDice.holdDie(Integer.parseInt(in.readLine()));
+                int dieIdx = Integer.parseInt(in.readLine());
+                if(CurrentPlayer != myPlayer)
+                    PlayerDice.holdDie(dieIdx);
             }
             catch(IOException ex)
             {
@@ -1337,11 +1344,12 @@ public class Yahtzee extends JApplet implements ActionListener
             {
                 PlayerDice.setNumber(idx, parseDieValues.nextInt());
             }
+            PlayerDice.animateDice(false);
             CurrentPlayer.showPotential(PlayerDice.getDieValues());
         }
         
-        
-        getAnotherMessage();
+        if(!isGameOver)
+            getAnotherMessage();
     }
     
     /**

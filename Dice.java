@@ -32,7 +32,7 @@ public class Dice extends JPanel
     *   number each time; using a value >= 0 allows a game to be repeated
     *   for testing purposes.
     **/
-	public Dice(int seed)
+	public Dice(int seed, boolean canCheat)
 	{
         super();
         RandomDieValue = new RandomNum(seed);
@@ -41,15 +41,15 @@ public class Dice extends JPanel
         TheDice = new Die[5];
         for(int idx = 0; idx < 5; idx++)
         {
-            TheDice[idx] = new Die(RandomDieValue.getNum(), idx);
+            TheDice[idx] = new Die(RandomDieValue.getNum(), idx, canCheat);
         }
         
         soundFiles1 = new String[1];
         soundFiles1[0] = new String("putDie.wav");
         
-        soundFiles2 = new String[1];
+        soundFiles2 = new String[2];
         soundFiles2[0] = new String("removeDie1.wav");
-        //soundFiles2[1] = new String("removeDie2.wav");
+        soundFiles2[1] = new String("removeDie2.wav");
         RemoveSound = new SoundLib(soundFiles2);
         
         setOpaque(false);
@@ -164,10 +164,10 @@ public class Dice extends JPanel
     {
         if(allDice || !isDieHeld(index))
         {
+            RemoveSound.playSound("removeDie1.wav");
             SwingWorker animateDie = new SwingWorker(){
                 protected String doInBackground()
                 {
-                    RemoveSound.playSound("removeDie1.wav");
                     for(int idx = 0; idx < 20; idx++)
                     {
                         try
@@ -203,13 +203,12 @@ public class Dice extends JPanel
     {
         for(int idx = 0; idx < 5; idx++)
             slideDieOut(idx, allDice);
-        //removeAll();
-        //repaint();
+            
         showingDice = false;
     }
     
     /**
-    *   Main method to control dice animation.
+    *   Main method to control dice animation
     *
     *   @param endTurn determines whether the dice reappear if they are taken
     *   off of the game board
@@ -249,10 +248,10 @@ public class Dice extends JPanel
             addDice();
     }
     
-    public boolean isAnimationDone()
+    /* public boolean isAnimationDone()
     {
         return isAnimationDone;
-    }   
+    }  */  
     
     /**
     *   Set the number held by a Die at a specific location in the array

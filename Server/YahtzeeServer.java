@@ -32,11 +32,11 @@ class ServerData
 **/
 public class YahtzeeServer
 {
-    public static final int port = 0;
+    static final int PORT = 0;
     static ServerSocket server;
     
     /**
-    *   Initialize variables and start listening for connections
+    *   Initialize server data and accept new connections
     **/
     public static void main(String[] args)
     {
@@ -49,7 +49,7 @@ public class YahtzeeServer
 
         try
         {
-            server = new ServerSocket(port);
+            server = new ServerSocket(PORT);
             System.out.println("Server is running!");
         }
         catch(IOException e)
@@ -100,6 +100,10 @@ public class YahtzeeServer
     }
 }
 
+/**
+*   The Worker class organizes player connections and communicates with 
+*   applets to play the game.
+**/
 class Worker implements Runnable
 {
     Socket client;
@@ -109,8 +113,7 @@ class Worker implements Runnable
     int myIdx;
     
     /**
-    *   Constructor checks to make sure there is room available in the game
-    *   for another player
+    *   Constructor sets play order and adds this object to the Players array
     **/
     Worker(Socket newClient, ServerData Stats)
     {
@@ -129,7 +132,7 @@ class Worker implements Runnable
     }
     
     /**
-    *   Prepare the worker thread to play the game
+    *   Wait for all players to give the ready signal before beginning the game
     **/
     public void run()
     {
@@ -164,7 +167,7 @@ class Worker implements Runnable
                     value = in.readLine();
                     System.out.println("BGworker"+myIdx+": "+value);
                     if(value.equals("READY"))
-                    stats.Ready[myIdx] = true;
+                        stats.Ready[myIdx] = true;
                     else
                     {
                         System.out.println("Server worked received "+
@@ -178,7 +181,6 @@ class Worker implements Runnable
                 }
                 return null;
             }
-            //protected void done(){}
         };
         BGworker.execute();
     
@@ -221,8 +223,7 @@ class Worker implements Runnable
     }
     
     /**
-    *   Send player data to each client, and transmit messages received by a 
-    *   thread to all connected clients
+    *   Send player data to applets and begin broadcasting play choices
     **/
     public void playGame()
     {
@@ -234,9 +235,8 @@ class Worker implements Runnable
         try
         {
             out.println(""+myIdx);
-            //Thread.sleep(250);
             out.println(""+stats.numConnected);
-            //Thread.sleep(250);
+
             for(int idx = 0; idx < stats.numConnected; idx++)
             {
                 while(stats.Names[idx] == null)
@@ -274,9 +274,31 @@ class Worker implements Runnable
                 System.exit(-1);
             }
         }
-        //gameOver(stats);
-        System.out.println("Game complete. Shutting down");
-        System.exit(0);
+        
+        if(myIdx == 0)
+        {
+            gameOver(stats);
+            System.out.println("Game complete. Ready for new game.");
+        }
+        //System.exit(0);
+    }
+    
+    /**
+    *   Reset the server data to begin a new game
+    *
+    *   @param stats is the object containing server data
+    **/
+    public void gameOver(ServerData stats)
+    {
+        stats.numConnected = 0;
+        stats.numReadyToStart = 0;
+        stats.Players = new Worker[stats.maxPlayers];
+        stats.Names = new String[stats.maxPlayers];
+        //set ready flag for all players to false
+        for(int idx = 0; idx < stats.maxPlayers; idx++)
+        {
+            stats.Ready[idx] = false;
+        }
     }
     
     /**
@@ -289,19 +311,5 @@ class Worker implements Runnable
             stats.Players[idx].out.println(message);
         }
         System.out.println("Msg thread "+myIdx+" "+message);
-    }
-    
-    /**
-    *   Reset data so that game can be played again
-    **/
-    public void gameOver(ServerData stats)
-    {
-        /* System.out.println("Resetting server data for new game");
-        stats.numConnected = 0;
-        stats.numReadyToStart = 0;
-        stats.Players = new Worker[stats.maxPlayers];
-        stats.Ready = new boolean[stats.maxPlayers];
-        stats.Names = new String[stats.maxPlayers];
-        run(); */
     }
 }
