@@ -40,7 +40,7 @@ public class Robot extends Player
         int[] valueCount = new int[6];
         
         //score a large straight
-        if(MyScore.getScore(10) != 0 && 
+        if(MyScore.getScore(10) == 0 && 
                 MyScore.calculateScore(10, TheDice.getDieValues()) == 40)
         {
             TheDice.holdAll();
