@@ -8,6 +8,7 @@
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 
 /**
 *   Dice.java holds an array of five Die objects. It contains methods to get and
@@ -17,8 +18,7 @@ public class Dice extends JPanel
 {
     private RandomNum RandomDieValue;
     private Die[] TheDice;
-    private SoundLib Sound;
-    private SoundLib RemoveSound;
+    private SoundLib Sound, RemoveSound;
     private String[] soundFiles1, soundFiles2;
     private boolean showingDice;
     private volatile boolean isAnimationDone = true;
@@ -42,6 +42,23 @@ public class Dice extends JPanel
         for(int idx = 0; idx < 5; idx++)
         {
             TheDice[idx] = new Die(RandomDieValue.getNum(), idx, canCheat);
+            
+            final Die theDie = TheDice[idx];
+            theDie.addMouseListener(new MouseAdapter() 
+            {
+                public void mouseEntered(MouseEvent e)
+                {
+                    theDie.setBounds(theDie.getLocation().x,
+                            theDie.getLocation().y - 3, 100, 100);
+                    repaint();
+                }
+                public void mouseExited(MouseEvent e)
+                {
+                    theDie.setBounds(theDie.getLocation().x,
+                            theDie.getLocation().y + 3, 100, 100);
+                    repaint();
+                }
+            });
         }
         
         soundFiles1 = new String[1];
@@ -53,10 +70,7 @@ public class Dice extends JPanel
         RemoveSound = new SoundLib(soundFiles2);
         
         setOpaque(false);
-        //setBackground(Color.blue);
-        //setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
         setLayout(null);
-        //add(Box.createRigidArea(new Dimension(0,115)));
         setBounds(0,0,800,115);
         validate();
 	}
@@ -247,11 +261,6 @@ public class Dice extends JPanel
         else
             addDice();
     }
-    
-    /* public boolean isAnimationDone()
-    {
-        return isAnimationDone;
-    }  */  
     
     /**
     *   Set the number held by a Die at a specific location in the array

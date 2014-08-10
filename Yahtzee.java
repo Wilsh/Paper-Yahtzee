@@ -61,7 +61,7 @@ public class Yahtzee extends JApplet implements ActionListener
     JTextField[] CheatScores;
     
     //panels for main game
-    public JPanel PlayerPanel;
+    public PlayerJP PlayerPanel;
     public JPanel ScorePanel;
     public JPanel DicePanel;
     public PreviousJP PreviousPanel;
@@ -134,7 +134,7 @@ public class Yahtzee extends JApplet implements ActionListener
     **/
     public void loadSounds()
     {
-        String[] soundFiles = new String[11];
+        String[] soundFiles = new String[13];
         
         soundFiles[0] = new String("buttonClicked.wav");
         soundFiles[1] = new String("mouseOver.wav");
@@ -147,8 +147,8 @@ public class Yahtzee extends JApplet implements ActionListener
         soundFiles[8] = new String("anotherRound.wav");
         soundFiles[9] = new String("putOnTab.wav");
         soundFiles[10] = new String("smallClick.wav");
-        //soundFiles[] = new String();
-        //soundFiles[] = new String();
+        soundFiles[11] = new String("won.wav");
+        soundFiles[12] = new String("lost.wav");
         //soundFiles[] = new String();
         
         Sounds = new SoundLib(soundFiles);
@@ -177,13 +177,13 @@ public class Yahtzee extends JApplet implements ActionListener
         LblTurns = new JLabel();
         LblPrompt = new JLabel("Roll the dice");
         //panels for main game
-        PlayerPanel = new JPanel();
+        PlayerPanel = new PlayerJP();
         ScorePanel = new JPanel();
         DicePanel = new JPanel();
         PlayerDice = new Dice(-1, !useServer);
         PreviousPanel = new PreviousJP();
         //DialogPanel = new JPanel();
-        PlayerPanel.setOpaque(false);
+        //PlayerPanel.setOpaque(false);
         DicePanel.setOpaque(false);
         //DialogPanel.setOpaque(false);
         ScorePanel.setOpaque(false);
@@ -498,8 +498,11 @@ public class Yahtzee extends JApplet implements ActionListener
                     break;
                 }
             }
+            
+            PlayerPanel.addPlayer(ThePlayers[playerNum-1]);
         }
 
+        PlayerPanel.doneAddingPlayers();
         playGame();
     }
     
@@ -533,14 +536,12 @@ public class Yahtzee extends JApplet implements ActionListener
         Window.setLayer(ScorePanel, 10);
         Window.setLayer(PlayerPanel, 10);
         Window.setLayer(DicePanel, 10);
-        //Window.setLayer(PreviousPanel, 10);
-        //Window.setLayer(DialogPanel, 10);
         
         //score panel
         ScorePanel.setLayout(new GridLayout(1,1));
         Window.add(ScorePanel, BorderLayout.EAST);
         //player panel
-        PlayerPanel.setPreferredSize(new Dimension (800,80));
+        //PlayerPanel.setPreferredSize(new Dimension (800,80));
         Window.add(PlayerPanel, BorderLayout.NORTH);
         //dice panel
         DicePanel.setLayout(new BoxLayout(DicePanel, BoxLayout.LINE_AXIS));
@@ -567,7 +568,8 @@ public class Yahtzee extends JApplet implements ActionListener
             Sounds.playSound("yourTurn.wav");
             if(CurrentPlayer.getNumTurns() == 1) //possible if cheat is used
                 LastTurn = new SoundTask(1000 * 1, "lastTurn.wav");
-            TurnAlert = new SoundTask(1000 * 60, "hurryUp.wav");
+            if(useServer)
+                TurnAlert = new SoundTask(1000 * 60, "hurryUp.wav");
         }
         else
             BtnRoll.setEnabled(false);
@@ -608,6 +610,7 @@ public class Yahtzee extends JApplet implements ActionListener
             ScorePanel.remove(CurrentPlayer.getScoresheet());
             CurrentPlayer = PlayerQ.pop();
             ScorePanel.add(CurrentPlayer.getScoresheet());
+            PlayerPanel.shiftPlayers(CurrentPlayer);
             
             if(CurrentPlayer == myPlayer)
                 BtnRoll.setEnabled(true);
@@ -621,7 +624,8 @@ public class Yahtzee extends JApplet implements ActionListener
                     Sounds.playSound("yourTurn.wav");
                     if(CurrentPlayer.getNumTurns() == 1)
                         LastTurn = new SoundTask(1700, "lastTurn.wav");
-                    TurnAlert = new SoundTask(1000 * 60, "hurryUp.wav");
+                    if(useServer)
+                        TurnAlert = new SoundTask(1000 * 60, "hurryUp.wav");
                 }
                 DialogPanel.setAction("Roll the dice");
             }
@@ -688,14 +692,16 @@ public class Yahtzee extends JApplet implements ActionListener
     **/
     public void gameOver()
     {
-        SoundTask GameEnded = new SoundTask(1500, "anotherRound.wav");
+        int waitTime;
         
         if(numPlayers == 1)
         {
+            waitTime = 1700;
             DialogPanel.gameOver(true, myPlayer.getFinalScore(), true);
         }
         else
         {
+            waitTime = 4000;
             int score;
             int highest = 0;
             for(int idx = 0; idx < numPlayers; idx++)
@@ -711,15 +717,43 @@ public class Yahtzee extends JApplet implements ActionListener
             
             if(myPlayer.getFinalScore() == highest)
             {
+                Sounds.playSound("won.wav");
                 DialogPanel.gameOver(false, myPlayer.getFinalScore(), true);
             }
             else
             {
+                Sounds.playSound("lost.wav");
                 DialogPanel.gameOver(false, myPlayer.getFinalScore(), false);
             }
         }
         
-        DialogPanel.getButton().addMouseListener(new MouseAdapter() 
+        final JButton playAgain = DialogPanel.getButton();
+        playAgain.setEnabled(false);
+        final int timer = waitTime;
+        SwingWorker waitTimer = new SwingWorker(){
+            protected String doInBackground()
+            {
+                try
+                {
+                    Thread.sleep(timer);
+                }
+                catch(Exception ex)
+                {
+                  System.out.println(
+                    "Yahtzee.java gameOver() Exception: sleep failed");
+                }
+
+                return null;
+            }
+            protected void done()
+            {
+                playAgain.setEnabled(true);
+                Sounds.playSound("anotherRound.wav");
+            }
+        };
+        waitTimer.execute();
+        
+        playAgain.addMouseListener(new MouseAdapter() 
         {
             public void mousePressed(MouseEvent e)
             {
@@ -765,8 +799,6 @@ public class Yahtzee extends JApplet implements ActionListener
     {
         //instantiate a player to get enumerated score categories
         Player Dummy = new Robot("Dummy", this, false);
-        //don't allow the player to appear on the game board
-        PlayerPanel.removeAll();
         
         CheatCategory = new JPanel[13];
         CheatScores = new JTextField[13];
@@ -829,7 +861,14 @@ public class Yahtzee extends JApplet implements ActionListener
         
         for(int idx = 0; idx < 13; idx++)
         {
-            score = Integer.parseInt(CheatScores[idx].getText());
+            try
+            {
+                score = Integer.parseInt(CheatScores[idx].getText());
+            }
+            catch(Exception ex)
+            {
+                score = 0;
+            }
 
             if(score != 0)
                 P1.cheatCategory(idx, score);
@@ -1288,7 +1327,7 @@ public class Yahtzee extends JApplet implements ActionListener
         if(msg >= 0 && msg <=13)
         {//score button clicked
             CurrentPlayer.setCategory(msg, PlayerDice.getDieValues());
-            if(CurrentPlayer == myPlayer)
+            if(CurrentPlayer == myPlayer && useServer)
                 TurnAlert.cancelSound(); //tell hurryUp sound to not play
             nextPlayer();
         }
@@ -1363,8 +1402,8 @@ public class Yahtzee extends JApplet implements ActionListener
         if(!useServer)
         {
             CurrentPlayer.setCategory(idx, PlayerDice.getDieValues());
-            if(CurrentPlayer instanceof Human)
-                TurnAlert.cancelSound(); //tell hurryUp sound to not play
+            // if(CurrentPlayer instanceof Human)
+                // TurnAlert.cancelSound(); //tell hurryUp sound to not play
             nextPlayer();
         }
     }

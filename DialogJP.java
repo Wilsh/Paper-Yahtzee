@@ -105,7 +105,6 @@ public class DialogJP extends JLayeredPane
         HoldComponents.add(Container);
         
         setOpaque(false);
-        //setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
         setPreferredSize(new Dimension(455,261));
         add(HoldComponents, new Integer(3));
         

@@ -36,7 +36,7 @@ public class Scoresheet extends JPanel
     
     //private JButton[] ScoreButtons;
     private Image background;
-    public ImageIcon[] CategoryImg;
+    public ImageIcon[] CategoryImg, CategoryBorderImg;
     private JButton[] ButtonArray;
     private JPanel[] TextScoreArray;
     private JPanel[] TextPotentialArray;
@@ -88,25 +88,14 @@ public class Scoresheet extends JPanel
         Categories[13] = "No Score";
         
         CategoryImg = new ImageIcon[14];
+        CategoryBorderImg = new ImageIcon[14];
         for(int idx = 0; idx < 14; idx++)
         {
             String file = new String("Score"+idx+".png");
             CategoryImg[idx] = new ImageIcon(getClass().getResource(file));
+            file = new String("Score"+idx+"Border.png");
+            CategoryBorderImg[idx] = new ImageIcon(getClass().getResource(file));
         }
-        /* CategoryImg[0] = new ImageIcon(getClass().getResource("Score0.png"));
-        CategoryImg[1] = new ImageIcon(getClass().getResource("Score1.png"));
-        CategoryImg[2] = new ImageIcon(getClass().getResource("Score2.png"));
-        CategoryImg[3] = new ImageIcon(getClass().getResource("Score3.png"));
-        CategoryImg[4] = new ImageIcon(getClass().getResource("Score4.png"));
-        CategoryImg[5] = new ImageIcon(getClass().getResource("Score5.png"));
-        CategoryImg[6] = new ImageIcon(getClass().getResource("Score6.png"));
-        CategoryImg[7] = new ImageIcon(getClass().getResource("Score7.png"));
-        CategoryImg[8] = new ImageIcon(getClass().getResource("Score8.png"));
-        CategoryImg[9] = new ImageIcon(getClass().getResource("Score9.png"));
-        CategoryImg[10] = new ImageIcon(getClass().getResource("Score10.png"));
-        CategoryImg[11] = new ImageIcon(getClass().getResource("Score11.png"));
-        CategoryImg[12] = new ImageIcon(getClass().getResource("Score12.png"));
-        CategoryImg[13] = new ImageIcon(getClass().getResource("Score13.png")); */
         
         for(int idx = 0; idx < 13; idx++)
         {
@@ -175,6 +164,9 @@ public class Scoresheet extends JPanel
         for(int idx = 0; idx < 14; idx++)
         {
             final JButton currentButton = new JButton();
+            final ImageIcon[] Cat = CategoryImg;
+            final ImageIcon[] CatBorder = CategoryBorderImg;
+            final int index = idx;
         
             if(playerUsingThisApplet)
             {
@@ -184,20 +176,17 @@ public class Scoresheet extends JPanel
                     {
                         if(currentButton.isEnabled())
                         {
-                            currentButton.setBorder(
-                                    BorderFactory.createLoweredBevelBorder());
+                            currentButton.setIcon(CatBorder[index]);
                             Sounds.playRandom();
                         }
                     }
                     public void mouseExited(MouseEvent e)
                     {
-                        currentButton.setBorder(
-                                BorderFactory.createEmptyBorder());
+                        currentButton.setIcon(Cat[index]);
                     }
                     public void mousePressed(MouseEvent e)
                     {
-                        currentButton.setBorder(
-                                BorderFactory.createEmptyBorder());
+                        currentButton.setIcon(Cat[index]);
                     }
                 });
             }

@@ -87,7 +87,7 @@ public abstract class Player extends JPanel
             }
         );
         setOpaque(false);
-        app.PlayerPanel.add(this);
+        //app.PlayerPanel.add(this);
         
         LblName = new JLabel();
         LblName.setOpaque(false);
