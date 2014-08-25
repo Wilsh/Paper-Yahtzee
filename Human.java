@@ -37,9 +37,6 @@ public class Human extends Player
         
         soundFiles = new String[1];
         soundFiles[0] = new String("kiddinMe.wav");
-        //soundFiles[] = new String();
-        //soundFiles[] = new String();
-        //soundFiles[] = new String();
         Sounds = new SoundLib(soundFiles);
         
         soundFiles = new String[4];
@@ -122,17 +119,20 @@ public class Human extends Player
                 MyScore.usedCategory(index);
         }
         
-        if(score == 0 && playerUsingThisApplet)
-            BadPlaySounds.playRandom();
-        else if(MyScore.wasGoodScore() && playerUsingThisApplet)
+        if(app.muteButton.isEnabled())
         {
-            if(index < 6)
-                UpperCheerSounds.playRandom();
-            else
-                LowerCheerSounds.playRandom();
+            if(score == 0 && playerUsingThisApplet)
+                BadPlaySounds.playRandom();
+            else if(MyScore.wasGoodScore() && playerUsingThisApplet)
+            {
+                if(index < 6)
+                    UpperCheerSounds.playRandom();
+                else
+                    LowerCheerSounds.playRandom();
+            }
+            else if(score == 50 && !playerUsingThisApplet)
+                Sounds.playSound("kiddinMe.wav");
         }
-        else if(score == 50 && !playerUsingThisApplet)
-            Sounds.playSound("kiddinMe.wav");
         
         lastCategory = index;
         lastScore = score;

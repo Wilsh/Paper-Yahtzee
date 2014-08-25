@@ -53,7 +53,7 @@ public abstract class Player extends JPanel
     {
         super();
         playerUsingThisApplet = isUsingThisApp;
-        MyScore = new Scoresheet(playerUsingThisApplet);
+        MyScore = new Scoresheet(playerUsingThisApplet, a.muteButton);
         playerName = name;
         numTurnsLeft = 13;
         setLayout(new GridLayout(0,1));
@@ -69,7 +69,8 @@ public abstract class Player extends JPanel
                 public void mouseEntered(MouseEvent e)
                 {
                     setBorder(BorderFactory.createLoweredBevelBorder());
-                    Sounds.playSound("playerHover.wav");
+                    if(app.muteButton.isEnabled())
+                        Sounds.playSound("playerHover.wav");
                 }
                 public void mouseExited(MouseEvent e)
                 {
@@ -81,13 +82,13 @@ public abstract class Player extends JPanel
                 }
                 public void mouseClicked(MouseEvent e)
                 {
-                    Sounds.playSound("smallClick.wav");
+                    if(app.muteButton.isEnabled())
+                        Sounds.playSound("smallClick.wav");
                     showPopupScores();
                 }
             }
         );
         setOpaque(false);
-        //app.PlayerPanel.add(this);
         
         LblName = new JLabel();
         LblName.setOpaque(false);

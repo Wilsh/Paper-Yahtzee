@@ -21,7 +21,8 @@ public class Dice extends JPanel
     private SoundLib Sound, RemoveSound;
     private String[] soundFiles1, soundFiles2;
     private boolean showingDice;
-    private volatile boolean isAnimationDone = true;
+    private JButton muteButton;
+    
     
 	/**
     *   Constructor initializes the pseudorandom number generator and the array
@@ -37,11 +38,42 @@ public class Dice extends JPanel
         super();
         RandomDieValue = new RandomNum(seed);
         showingDice = false;
+        
+        //mute button
+        final JButton currentButton = new JButton();
+        currentButton.addMouseListener(new MouseAdapter() 
+        {
+            public void mousePressed(MouseEvent e)
+            {
+                if(currentButton.isEnabled())
+                {
+                    currentButton.setEnabled(false);
+                }
+                else
+                {
+                    currentButton.setEnabled(true);
+                }
+            }
+        });
+        muteButton = currentButton;
+        muteButton.setBorder(BorderFactory.createEmptyBorder());
+        muteButton.setOpaque(false);
+        muteButton.setBackground(new Color(0,0,0,0));
+        muteButton.setFocusPainted(false);
+        muteButton.setBorderPainted(false);
+        muteButton.setContentAreaFilled(false);
+        muteButton.setIcon(new ImageIcon(
+                getClass().getResource("MuteUnchecked.png")));
+        muteButton.setDisabledIcon(new ImageIcon(
+                getClass().getResource("MuteChecked.png")));
+        muteButton.setBounds(0,70,115,27);
+        add(muteButton);
 		
         TheDice = new Die[5];
         for(int idx = 0; idx < 5; idx++)
         {
-            TheDice[idx] = new Die(RandomDieValue.getNum(), idx, canCheat);
+            TheDice[idx] = new Die(RandomDieValue.getNum(), idx, canCheat, 
+                    muteButton);
             
             final Die theDie = TheDice[idx];
             theDie.addMouseListener(new MouseAdapter() 
@@ -68,12 +100,20 @@ public class Dice extends JPanel
         soundFiles2[0] = new String("removeDie1.wav");
         soundFiles2[1] = new String("removeDie2.wav");
         RemoveSound = new SoundLib(soundFiles2);
-        
+
         setOpaque(false);
         setLayout(null);
         setBounds(0,0,800,115);
-        validate();
+        revalidate();
 	}
+    
+    /**
+    *   @return a reference to the mute JButton
+    **/
+    public JButton getMute()
+    {
+        return muteButton;
+    }
     
     /**
     *   @return a reference to a Die object contained in the array TheDice
@@ -91,6 +131,8 @@ public class Dice extends JPanel
     private void addDice()
     {
         removeAll();
+        add(muteButton);
+        
         for(int idx = 0; idx < 5; idx++)
         {
             add(TheDice[idx]);
@@ -138,8 +180,11 @@ public class Dice extends JPanel
                             "Dice.java slideDieIn() Exception1: sleep failed");
                     }
             
-                    Sound = new SoundLib(soundFiles1);
-                    Sound.playSound("putDie.wav");
+                    if(muteButton.isEnabled())
+                    {
+                        Sound = new SoundLib(soundFiles1);
+                        Sound.playSound("putDie.wav");
+                    }
                     for(int idx = 0; idx < 20; idx++)
                     {
                         try
@@ -178,7 +223,9 @@ public class Dice extends JPanel
     {
         if(allDice || !isDieHeld(index))
         {
-            RemoveSound.playSound("removeDie1.wav");
+            if(muteButton.isEnabled())
+                RemoveSound.playSound("removeDie1.wav");
+
             SwingWorker animateDie = new SwingWorker(){
                 protected String doInBackground()
                 {

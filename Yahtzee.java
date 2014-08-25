@@ -17,6 +17,7 @@ import java.awt.event.*;
 import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.net.*;
+import java.util.concurrent.*;
 
 /**
 *   Yahtzee.java is the main class for the game. It contains the set of dice and
@@ -32,8 +33,6 @@ public class Yahtzee extends JApplet implements ActionListener
     LinkedList<Player> PlayerQ;
     LinkedList<Player> FinishedQ;
     Turn PlayerTurn;
-    Font DialogFont = new Font("Dialog", Font.BOLD, 14);
-    Font GameOverFont = new Font("Dialog", Font.BOLD, 26);
     JLabel LblName;
     JLabel LblTurns;
     JLabel LblPrompt;
@@ -93,6 +92,7 @@ public class Yahtzee extends JApplet implements ActionListener
     SoundLib PlayBtnSounds;
     SoundTask TurnAlert;
     SoundTask LastTurn;
+    JButton muteButton;
 
     /**
     *   Init gets parameters from the HTML launch page and calls 
@@ -103,7 +103,6 @@ public class Yahtzee extends JApplet implements ActionListener
         //applet parameters
         playerName = getParameter("Name");
         isInternet = getParameter("IsNet");
-        //System.out.println(playerName + "  " + isInternet);
         if(isInternet.equals("true"))
         {
             useServer = true;
@@ -130,6 +129,19 @@ public class Yahtzee extends JApplet implements ActionListener
     }
     
     /**
+    *   Terminate timers and threads to allow the applet to close properly
+    **/
+    public void destroy()
+    {
+        try
+        {
+            PlayerPanel.killThreads();
+            TurnAlert.cancelSound();
+        }
+        catch(Exception ex){}
+    }
+    
+    /**
     *   Load sounds that will be played during the course of the game.
     **/
     public void loadSounds()
@@ -149,7 +161,6 @@ public class Yahtzee extends JApplet implements ActionListener
         soundFiles[10] = new String("smallClick.wav");
         soundFiles[11] = new String("won.wav");
         soundFiles[12] = new String("lost.wav");
-        //soundFiles[] = new String();
         
         Sounds = new SoundLib(soundFiles);
         
@@ -181,15 +192,11 @@ public class Yahtzee extends JApplet implements ActionListener
         ScorePanel = new JPanel();
         DicePanel = new JPanel();
         PlayerDice = new Dice(-1, !useServer);
+        muteButton = PlayerDice.getMute();
         PreviousPanel = new PreviousJP();
-        //DialogPanel = new JPanel();
-        //PlayerPanel.setOpaque(false);
         DicePanel.setOpaque(false);
-        //DialogPanel.setOpaque(false);
         ScorePanel.setOpaque(false);
-        
 
-        //this.setLayout(new BorderLayout());
         this.setSize(800,600);
         //Window is the main container for all game content
         Window = new JLayeredPane();
@@ -333,7 +340,6 @@ public class Yahtzee extends JApplet implements ActionListener
                         {
                             System.out.println(
                                 "waitForServer Exception: sleep failed");
-                            //System.exit(-1);
                         }
                     }
                 }
@@ -346,24 +352,21 @@ public class Yahtzee extends JApplet implements ActionListener
             orderIdx = Integer.parseInt(in.readLine());
             numPlayers = Integer.parseInt(in.readLine());
             playerNames = new String[numPlayers];
-            //System.out.println(numPlayers);
             for(int idx = 0; idx < numPlayers; idx++)
             {
                 playerNames[idx] = in.readLine();
-                //System.out.println(playerNames[idx]);
             }
         } 
         catch(IOException e){
             System.out.println("************* Name read failed *************");
             System.exit(1);
         }
-        
-        //gameStarting.play();
+
         stillWaitingForServer = false;
         
         try
         {//wait for worker thread to finish
-            Thread.sleep(400);
+            Thread.sleep(2000);
         }
         catch(Exception ex)
         {
@@ -376,28 +379,6 @@ public class Yahtzee extends JApplet implements ActionListener
         getAnotherMessage();
     }
     
-    /*
-    *   Transform a String into a series of images on a JPanel.
-    *   Currently unused in this class.
-    *
-    *   @param word is the string to transform
-    *
-    *   @return JLabel containing image representation of the String
-    **   
-    public JPanel transformChars(String word)
-    {
-        JPanel theImages = new JPanel();
-        theImages.setOpaque(false);
-        JLabel[] tempArray = ImageGet.getLetters(word);
-        int length = tempArray.length;
-        theImages.setMinimumSize(new Dimension((12*length),23));
-        for(int idx = 0; idx < length; idx++)
-        {
-            theImages.add(tempArray[idx]);
-        }
-        return theImages;
-    } */
-    
     /**
     *   Initialize the dice and players then call playGame() to set up
     *   the game board.
@@ -409,8 +390,6 @@ public class Yahtzee extends JApplet implements ActionListener
     public void startGame(int numPlayers, int seed)
     {
         boolean drawABox;
-        //create the set of dice using specified seed
-        //PlayerDice = new Dice(seed, this);
         ThePlayers = new Player[numPlayers];
         
         //change background for network game
@@ -541,19 +520,18 @@ public class Yahtzee extends JApplet implements ActionListener
         ScorePanel.setLayout(new GridLayout(1,1));
         Window.add(ScorePanel, BorderLayout.EAST);
         //player panel
-        //PlayerPanel.setPreferredSize(new Dimension (800,80));
         Window.add(PlayerPanel, BorderLayout.NORTH);
         //dice panel
         DicePanel.setLayout(new BoxLayout(DicePanel, BoxLayout.LINE_AXIS));
         DicePanel.add(Box.createRigidArea(new Dimension(0,115)));
         DicePanel.add(PlayerDice);
         Window.add(DicePanel, BorderLayout.SOUTH);
-        
         Window.add(GameInfo, BorderLayout.CENTER);
         
         CurrentPlayer = PlayerQ.pop();
         ScorePanel.add(CurrentPlayer.getScoresheet());
-        DialogPanel = new DialogJP(CurrentPlayer.getName(), CurrentPlayer.getNumTurns());
+        DialogPanel = new DialogJP(CurrentPlayer.getName(), 
+                CurrentPlayer.getNumTurns(), muteButton);
         GameInfo.add(PreviousPanel);
         GameInfo.add(DialogPanel);
         Window.revalidate();
@@ -565,10 +543,13 @@ public class Yahtzee extends JApplet implements ActionListener
         if(CurrentPlayer == myPlayer)
         {
             BtnRoll.setEnabled(true);
-            Sounds.playSound("yourTurn.wav");
-            if(CurrentPlayer.getNumTurns() == 1) //possible if cheat is used
+            if(muteButton.isEnabled())
+                Sounds.playSound("yourTurn.wav");
+            if(CurrentPlayer.getNumTurns() == 1 && muteButton.isEnabled()) 
+            {//possible if cheat is used
                 LastTurn = new SoundTask(1000 * 1, "lastTurn.wav");
-            if(useServer)
+            }
+            if(useServer && muteButton.isEnabled())
                 TurnAlert = new SoundTask(1000 * 60, "hurryUp.wav");
         }
         else
@@ -583,7 +564,7 @@ public class Yahtzee extends JApplet implements ActionListener
     *   player's turn
     **/
     public void nextPlayer()
-    {
+    {try{
         CurrentPlayer.updateScore();
         //remove the previously scored category's potential score
         CurrentPlayer.showPotential(PlayerDice.getDieValues());
@@ -621,10 +602,12 @@ public class Yahtzee extends JApplet implements ActionListener
             {
                 if(CurrentPlayer == myPlayer)
                 {
-                    Sounds.playSound("yourTurn.wav");
-                    if(CurrentPlayer.getNumTurns() == 1)
+                    if(muteButton.isEnabled())
+                        Sounds.playSound("yourTurn.wav");
+                    if(CurrentPlayer.getNumTurns() == 1 && 
+                            muteButton.isEnabled())
                         LastTurn = new SoundTask(1700, "lastTurn.wav");
-                    if(useServer)
+                    if(useServer && muteButton.isEnabled())
                         TurnAlert = new SoundTask(1000 * 60, "hurryUp.wav");
                 }
                 DialogPanel.setAction("Roll the dice");
@@ -684,7 +667,7 @@ public class Yahtzee extends JApplet implements ActionListener
                 out.println("GAMEOVER");
             }
             gameOver();
-        }
+        }}catch (Exception e) { e.printStackTrace();}
     }
     
     /**
@@ -717,12 +700,14 @@ public class Yahtzee extends JApplet implements ActionListener
             
             if(myPlayer.getFinalScore() == highest)
             {
-                Sounds.playSound("won.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("won.wav");
                 DialogPanel.gameOver(false, myPlayer.getFinalScore(), true);
             }
             else
             {
-                Sounds.playSound("lost.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("lost.wav");
                 DialogPanel.gameOver(false, myPlayer.getFinalScore(), false);
             }
         }
@@ -748,7 +733,8 @@ public class Yahtzee extends JApplet implements ActionListener
             protected void done()
             {
                 playAgain.setEnabled(true);
-                Sounds.playSound("anotherRound.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("anotherRound.wav");
             }
         };
         waitTimer.execute();
@@ -759,7 +745,8 @@ public class Yahtzee extends JApplet implements ActionListener
             {
                 if(SwingUtilities.isLeftMouseButton(e))
                 {
-                    Sounds.playSound("putOnTab.wav");
+                    if(muteButton.isEnabled())
+                        Sounds.playSound("putOnTab.wav");
                     resetGame();
                 }
             }
@@ -904,7 +891,6 @@ public class Yahtzee extends JApplet implements ActionListener
         StartMenuSub2.setOpaque(false);
         StartMenuSub3.setLayout(new BoxLayout(
                 StartMenuSub3, BoxLayout.LINE_AXIS));
-        //StartMenuSub3.add(Box.createRigidArea(new Dimension(300,115)));
         StartMenuSub3.setOpaque(false);
         
         //add content to start menu
@@ -928,7 +914,8 @@ public class Yahtzee extends JApplet implements ActionListener
                 {
                     currentButton.setBorder(
                             BorderFactory.createLoweredBevelBorder());
-                    Sounds.playSound("mouseOver.wav");
+                    if(muteButton.isEnabled())
+                        Sounds.playSound("mouseOver.wav");
                     currentButton.setIcon(new ImageIcon(
                             getClass().getResource("PlayNowHighlight.png")));
                 }
@@ -949,7 +936,8 @@ public class Yahtzee extends JApplet implements ActionListener
             {
                 public void actionPerformed(ActionEvent e)
                 {
-                    Sounds.playSound("buttonClicked.wav");
+                    if(muteButton.isEnabled())
+                        Sounds.playSound("buttonClicked.wav");
                     
                     //send ready signal to server
                     out.println("READY");
@@ -965,7 +953,8 @@ public class Yahtzee extends JApplet implements ActionListener
                             "setUpInternet() Exception: sleep failed");
                     }
         
-                    PlayBtnSounds.playRandom();
+                    if(muteButton.isEnabled())
+                        PlayBtnSounds.playRandom();
                 }
             }
         );
@@ -975,7 +964,6 @@ public class Yahtzee extends JApplet implements ActionListener
         Play.setOpaque(false);
         Play.setBackground(new Color(0,0,0,0));
         Play.setFocusPainted(false);
-        //Play.setBorderPainted(false);
         Play.setContentAreaFilled(false);
         Play.setIcon(new ImageIcon(getClass().getResource("PlayNow.png")));
         //add JPanel with no layout set
@@ -999,7 +987,8 @@ public class Yahtzee extends JApplet implements ActionListener
                 {
                     public void mousePressed(MouseEvent e)
                     {
-                        if(SwingUtilities.isLeftMouseButton(e))
+                        if(SwingUtilities.isLeftMouseButton(e) && 
+                                CurrentPlayer == myPlayer)
                         {
                             out.println("16");
                             out.println(""+index);
@@ -1046,7 +1035,6 @@ public class Yahtzee extends JApplet implements ActionListener
         StartMenuSub2.setOpaque(false);
         StartMenuSub3.setLayout(new BoxLayout(
                 StartMenuSub3, BoxLayout.LINE_AXIS));
-        //StartMenuSub3.add(Box.createRigidArea(new Dimension(300,115)));
         StartMenuSub3.setOpaque(false);
         
         //add listeners to start menu radio buttons
@@ -1057,7 +1045,8 @@ public class Yahtzee extends JApplet implements ActionListener
                 {
                     numPlayers = 1;
                     CheatPanel.setVisible(true);
-                    Sounds.playSound("smallClick.wav");
+                    if(muteButton.isEnabled())
+                        Sounds.playSound("smallClick.wav");
                 }
             }
         );
@@ -1071,7 +1060,8 @@ public class Yahtzee extends JApplet implements ActionListener
                 {
                     numPlayers = 2;
                     CheatPanel.setVisible(false);
-                    Sounds.playSound("smallClick.wav");
+                    if(muteButton.isEnabled())
+                        Sounds.playSound("smallClick.wav");
                 }
             }
         );
@@ -1148,7 +1138,8 @@ public class Yahtzee extends JApplet implements ActionListener
         {
             public void mouseEntered(MouseEvent e)
             {
-                Sounds.playSound("mouseOver.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("mouseOver.wav");
                 currentButton.setIcon(new ImageIcon(
                         getClass().getResource("PlayHighlight.png")));
             }
@@ -1216,98 +1207,110 @@ public class Yahtzee extends JApplet implements ActionListener
             }
             else if(CompareThis.equals((JButton)Fields[3]))
             {   //score button ones
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(0);
                 if(useServer)
                     out.println(""+0);
             }
             else if(CompareThis.equals((JButton)Fields[6]))
             {   //score button twos
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(1);
                 if(useServer)
                     out.println(""+1);
             }
             else if(CompareThis.equals((JButton)Fields[9]))
             {   //score button threes
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(2);
                 if(useServer)
                     out.println(""+2);
             }
             else if(CompareThis.equals((JButton)Fields[12]))
             {   //score button fours
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(3);
                 if(useServer)
                     out.println(""+3);
             }
             else if(CompareThis.equals((JButton)Fields[15]))
             {   //score button fives
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(4);
                 if(useServer)
                     out.println(""+4);
             }
             else if(CompareThis.equals((JButton)Fields[18]))
             {   //score button sixes
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(5);
                 if(useServer)
                     out.println(""+5);
             }
             else if(CompareThis.equals((JButton)Fields[21]))
             {   //score button 3 of a kind
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(6);
                 if(useServer)
                     out.println(""+6);
             }
             else if(CompareThis.equals((JButton)Fields[24]))
             {   //score button 4 of a kind
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(7);
                 if(useServer)
                     out.println(""+7);
             }
             else if(CompareThis.equals((JButton)Fields[27]))
             {   //score button full house
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(8);
                 if(useServer)
                     out.println(""+8);
             }
             else if(CompareThis.equals((JButton)Fields[30]))
             {   //score button small straight
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(9);
                 if(useServer)
                     out.println(""+9);
             }
             else if(CompareThis.equals((JButton)Fields[33]))
             {   //score button large straight
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(10);
                 if(useServer)
                     out.println(""+10);
             }
             else if(CompareThis.equals((JButton)Fields[36]))
             {   //score button Yahtzee
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(11);
                 if(useServer)
                     out.println(""+11);
             }
             else if(CompareThis.equals((JButton)Fields[39]))
             {   //score button chance
-                Sounds.playSound("metalHit.wav");
+                if(muteButton.isEnabled())
+                    Sounds.playSound("metalHit.wav");
                 scoreButton(12);
                 if(useServer)
                     out.println(""+12);
             }
             else if(CompareThis.equals((JButton)Fields[42]))
             {   //"no score" button; need setCategory to know last play
-                //Sounds.playSound("metalHit.wav");
                 scoreButton(13);
                 if(useServer)
                     out.println(""+13);
@@ -1328,14 +1331,20 @@ public class Yahtzee extends JApplet implements ActionListener
         {//score button clicked
             CurrentPlayer.setCategory(msg, PlayerDice.getDieValues());
             if(CurrentPlayer == myPlayer && useServer)
-                TurnAlert.cancelSound(); //tell hurryUp sound to not play
+            {
+                try
+                {
+                    TurnAlert.cancelSound(); //tell hurryUp sound to not play
+                }
+                catch(Exception ex)
+                {/* TurnAlert was not instantiated; mute button was on */}
+            }
             nextPlayer();
         }
         else if(msg == 14)
         {//roll button clicked
             //no need to roll dice here; that was done in doRollBtn()
             PlayerTurn.takeTurn();
-            //CurrentPlayer.showPotential(PlayerDice.getDieValues());
             
             if(!PlayerTurn.canRoll())
             {
@@ -1363,7 +1372,6 @@ public class Yahtzee extends JApplet implements ActionListener
         else if(msg != 15)
             System.out.println("Unrecognized message from server: "+message);
             
-        //System.out.println(message + " from applet: " + orderIdx);
         if(msg == 15)
         {//string of die values incoming
             String dieValues = null;
@@ -1402,8 +1410,6 @@ public class Yahtzee extends JApplet implements ActionListener
         if(!useServer)
         {
             CurrentPlayer.setCategory(idx, PlayerDice.getDieValues());
-            // if(CurrentPlayer instanceof Human)
-                // TurnAlert.cancelSound(); //tell hurryUp sound to not play
             nextPlayer();
         }
     }
@@ -1455,14 +1461,23 @@ public class Yahtzee extends JApplet implements ActionListener
                     return message;
                 }
                 protected void done()
-                {
+                {String message = null;
                     try
-                    {
+                    {//message = get();serverEvent(message);
                         serverEvent(get());
+                    }
+                    catch(InterruptedException ex)
+                    {
+                        System.out.println("InterruptedException: get in getAnotherMsg");
+                    }
+                    catch(ExecutionException ex)
+                    {
+                        System.out.println("ExecutionException: get in getAnotherMsg");
                     }
                     catch(Exception ex)
                     {
                         System.out.println("Exception: get in getAnotherMsg");
+                        //ex.printStackTrace();
                     }
                 }
             };

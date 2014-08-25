@@ -25,6 +25,7 @@ public class Die extends JButton
 	private SoundLib Click;
     private String[] sound;
     private boolean cheatAllowed;
+    private JButton muteButton;
     
 	/**
     *   Constructor initializes the value on the die, loads images that are
@@ -40,13 +41,14 @@ public class Die extends JButton
     *   @param canCheat determines whether a player can right-click a Die to
     *   change its value
     **/
-	public Die(int initVal, int idx, boolean canCheat)
+	public Die(int initVal, int idx, boolean canCheat, JButton mute)
 	{
         super();
         try{
 		number = initVal;
         indexInDice = idx;
         cheatAllowed = canCheat;
+        muteButton = mute;
         sound = new String[1];
         sound[0] = new String("smallClick.wav");
         Click = new SoundLib(sound);
@@ -76,7 +78,8 @@ public class Die extends JButton
                 {
                     if(SwingUtilities.isLeftMouseButton(e))
                     {
-                        Click.playSound("smallClick.wav");
+                        if(muteButton.isEnabled())
+                            Click.playSound("smallClick.wav");
                         hold();
                     }
                     else if(cheatAllowed)

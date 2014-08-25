@@ -34,16 +34,18 @@ public class DialogJP extends JLayeredPane
     private JButton RollButton;
     private SoundLib Sounds;
     private String[] sound;
+    private JButton muteButton;
 
     /**
     *   Constructor initializes a CharacterImage object to translate text into
     *   images and prepares the JPanel for placement on the applet.
     **/
-	public DialogJP(String name, int numTurns)
+	public DialogJP(String name, int numTurns, JButton mute)
 	{
         super();
         try{
         ImageText = new CharacterImage();
+        muteButton = mute;
         
         sound = new String[1];
         sound[0] = new String("mouseOver.wav");
@@ -134,7 +136,6 @@ public class DialogJP extends JLayeredPane
     {
         final JButton Button = new JButton();
         Button.setBorder(BorderFactory.createEmptyBorder());
-        //Button.setPreferredSize(new Dimension(250,75));
         Button.setOpaque(false);
         Button.setBackground(new Color(0,0,0,0));
         Button.setFocusPainted(false);
@@ -143,7 +144,7 @@ public class DialogJP extends JLayeredPane
         {
             public void mouseEntered(MouseEvent e)
             {
-                if(Button.isEnabled())
+                if(Button.isEnabled() && muteButton.isEnabled())
                     Sounds.playSound("mouseOver.wav");
             }
         });

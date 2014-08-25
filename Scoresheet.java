@@ -33,8 +33,8 @@ public class Scoresheet extends JPanel
     private CharacterImage ImageScore = new CharacterImage();
     private SoundLib Sounds;
     private String[] SoundFiles;
+    private JButton muteButton;
     
-    //private JButton[] ScoreButtons;
     private Image background;
     public ImageIcon[] CategoryImg, CategoryBorderImg;
     private JButton[] ButtonArray;
@@ -60,11 +60,12 @@ public class Scoresheet extends JPanel
     *   Constructor initializes the category arrays, score arrays, and 
     *       JComponents displayed by the scoresheet.
     **/
-	public Scoresheet(boolean isUsingThisApp)
+	public Scoresheet(boolean isUsingThisApp, JButton mute)
 	{
         super();
         try{
         playerUsingThisApplet = isUsingThisApp;
+        muteButton = mute;
         Categories = new String[14];
         Scores = new int[13];
         CategoryScored = new boolean[13];
@@ -177,7 +178,8 @@ public class Scoresheet extends JPanel
                         if(currentButton.isEnabled())
                         {
                             currentButton.setIcon(CatBorder[index]);
-                            Sounds.playRandom();
+                            if(muteButton.isEnabled())
+                                Sounds.playRandom();
                         }
                     }
                     public void mouseExited(MouseEvent e)
@@ -641,7 +643,7 @@ public class Scoresheet extends JPanel
                 {
                     score += values[idx];
                 }
-                if(score > 20)
+                if(score > 23)
                     isGoodScore = true;
                 return score;
         }

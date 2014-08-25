@@ -29,7 +29,7 @@ public class Turn
     *   count of rolls taken, decrements the turn counter in the player class,
     *   and prepares the dice for a new turn.
     *
-    *   @param Cubes is the set of dice that will be rolled for the player
+    *   @param cubes is the set of dice that will be rolled for the player
     *
     *   @param p is the player who is granted the turn
     *   

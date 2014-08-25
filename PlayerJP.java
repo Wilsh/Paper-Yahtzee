@@ -8,6 +8,8 @@
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
 *   PlayerJP.java is a JPanel that displays and animates players on the game 
@@ -26,6 +28,8 @@ public class PlayerJP extends JPanel
     private final int PWIDTH = 133;
     private final int PHEIGHT = 46;
     private Player leftmostPlayer;
+    private LinkedList<Player> PlayerOrder;
+    private ExecutorService threadPool;
 
 	/**
     *   Constructor prepares the PlayerJP object for display on the game board
@@ -33,17 +37,25 @@ public class PlayerJP extends JPanel
 	public PlayerJP()
 	{
         super();
-        
         ThePlayers = new Player[5];
         numPlayers = 0;
         combinedWidth = 0;
         animateNum = 1;
         animateOrder = 1;
+        PlayerOrder = new LinkedList<Player>();
         setOpaque(false);
         setLayout(null);
         setBounds(0,0,800,80);
         setPreferredSize(new Dimension (800,80));
 	}
+    
+    /**
+    *   Terminate thread execution to allow the applet to close properly
+    **/
+    public void killThreads()
+    {
+        threadPool.shutdownNow();
+    }
     
     /**
     *   Add a player to the game board
@@ -54,6 +66,7 @@ public class PlayerJP extends JPanel
     {
         ThePlayers[numPlayers] = thePlayer;
         numPlayers++;
+        PlayerOrder.add(thePlayer);
         this.add(thePlayer);
     }
     
@@ -71,7 +84,7 @@ public class PlayerJP extends JPanel
         }
         
         activePlayer = (800-combinedWidth-((numPlayers-1)*11))/2;
-        leftmostPlayer = ThePlayers[0];
+        leftmostPlayer = PlayerOrder.peek();
 
         for(int idx = 0; idx < numPlayers; idx++)
         {
@@ -93,31 +106,25 @@ public class PlayerJP extends JPanel
     *   @param currentPlayer is the player to display on the leftmost side
     **/
     public void shiftPlayers(Player currentPlayer)
-    {
+    {try{
         if(currentPlayer != leftmostPlayer)
         {
-            int playerLoc;
-            int leftIdx = 0;
-    
+            threadPool = Executors.newFixedThreadPool(5);
             for(int idx = 0; idx < numPlayers; idx++)
             {
-                playerLoc = ThePlayers[idx].getLocation().x;
-                    
                 queueAnimation(ThePlayers[idx], 
                         ThePlayers[idx] == leftmostPlayer ? true : false, 
                         animateNum);
-
-                if(playerLoc == (activePlayer + PWIDTH + 11))
-                    leftIdx = idx;
             }
-            
-            leftmostPlayer = ThePlayers[leftIdx];
+            threadPool.shutdown();
+            PlayerOrder.add(PlayerOrder.pop());
+            leftmostPlayer = PlayerOrder.peek();
             animateNum++;
             
             //call method recursively in case multiple animation sequences
             //are needed to properly position players
             shiftPlayers(currentPlayer);
-        }
+        }}catch (Exception e) { e.printStackTrace();}
     }
     
     /**
@@ -160,7 +167,7 @@ public class PlayerJP extends JPanel
                     movePlayerLeft(thePlayer);
             }
         };
-        animatePlayer.execute();
+        threadPool.submit(animatePlayer);
     }
     
     /**
@@ -177,7 +184,7 @@ public class PlayerJP extends JPanel
                 {
                     try
                     {
-                        Thread.sleep(20);
+                        Thread.sleep(18);
                     }
                     catch(Exception ex)
                     {
@@ -206,7 +213,7 @@ public class PlayerJP extends JPanel
     *   @param thePlayer is the player to move
     **/
     private void wrapPlayerAround(final Player thePlayer)
-    {
+    {try{
         final int rightLoc = rightmostPosition;
         
         SwingWorker animatePlayer = new SwingWorker(){
@@ -233,7 +240,7 @@ public class PlayerJP extends JPanel
                 {
                     try
                     {
-                        Thread.sleep(12);
+                        Thread.sleep(18);
                     }
                     catch(Exception ex)
                     {
@@ -258,6 +265,6 @@ public class PlayerJP extends JPanel
                 animateOrder++;
             }
         };
-        animatePlayer.execute();
+        animatePlayer.execute();}catch (Exception e) { e.printStackTrace();}
     }
 }
